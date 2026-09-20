@@ -46,6 +46,75 @@ export const signInWithPassword = async (email: string, password: string) => {
   return data;
 };
 
+export const signInStaffMember = async (identifier: string, pass: string, tenantId?: string) => {
+  const client = getSupabaseClient();
+  if (!client) {
+    // Local / Demo mode fallback
+    return { isDemo: true, email: identifier };
+  }
+
+  const email = identifier.includes('@') ? identifier : `${identifier}@temple.org`;
+  const { data, error } = await client.auth.signInWithPassword({ email, password: pass });
+  if (error) throw error;
+
+  // Check tenant membership if tenantId is provided
+  if (tenantId && data.user) {
+    const { data: membership, error: memError } = await client
+      .from('tenant_memberships')
+      .select('*')
+      .eq('user_id', data.user.id)
+      .eq('tenant_id', tenantId)
+      .eq('is_active', true)
+      .single();
+
+    if (memError || !membership) {
+      throw new Error(`Account does not have active staff access to tenant #${tenantId}.`);
+    }
+  }
+
+  return { isDemo: false, user: data.user, session: data.session };
+};
+
+export const signInPlatformAdmin = async (identifier: string, pass: string) => {
+  const client = getSupabaseClient();
+  if (!client) {
+    // Demo mode fallback
+    if (identifier === 'superadmin' && pass === 'TempleOS@2026') {
+      return { isDemo: true, requiresMfa: false, user: { id: 'usr-demo-admin', email: 'superadmin@tatva.org' } };
+    }
+    throw new Error('Invalid platform administrator credentials.');
+  }
+
+  const email = identifier.includes('@') ? identifier : `${identifier}@tatva.org`;
+  const { data, error } = await client.auth.signInWithPassword({ email, password: pass });
+  if (error) throw error;
+
+  // Verify platform profile
+  const { data: profile, error: profError } = await client
+    .from('platform_profiles')
+    .select('*')
+    .eq('user_id', data.user.id)
+    .eq('is_active', true)
+    .single();
+
+  if (profError || !profile) {
+    throw new Error('Account does not have active Platform Administrator privileges.');
+  }
+
+  // Check MFA status
+  const { data: mfaAssurance } = await client.auth.mfa.getAuthenticatorAssuranceLevel();
+  const requiresMfa = profile.mfa_required && mfaAssurance?.currentLevel !== 'aal2';
+
+  return {
+    isDemo: false,
+    requiresMfa,
+    profile,
+    user: data.user,
+    session: data.session,
+    currentLevel: mfaAssurance?.currentLevel || 'aal1',
+  };
+};
+
 export const signOut = async () => {
   const client = getSupabaseClient();
   if (client) await client.auth.signOut();
@@ -59,12 +128,26 @@ export const enrollMfa = async (friendlyName = 'TATVa Authenticator') => {
   return data;
 };
 
-export const verifyMfa = async (factorId: string, code: string) => {
+export const challengeMfa = async (factorId: string) => {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Configure Supabase before challenging MFA.');
+  const { data, error } = await client.auth.mfa.challenge({ factorId });
+  if (error) throw error;
+  return data;
+};
+
+export const verifyMfaCode = async (factorId: string, challengeId: string, code: string) => {
   const client = getSupabaseClient();
   if (!client) throw new Error('Configure Supabase before verifying MFA.');
-  const { data: challenge, error: challengeError } = await client.auth.mfa.challenge({ factorId });
-  if (challengeError) throw challengeError;
-  const { data, error } = await client.auth.mfa.verify({ factorId, challengeId: challenge.id, code });
+  const { data, error } = await client.auth.mfa.verify({ factorId, challengeId, code });
+  if (error) throw error;
+  return data;
+};
+
+export const listMfaFactors = async () => {
+  const client = getSupabaseClient();
+  if (!client) return { totp: [] };
+  const { data, error } = await client.auth.mfa.listFactors();
   if (error) throw error;
   return data;
 };
@@ -96,10 +179,9 @@ export const testSupabaseConnection = async (
   try {
     const testClient = createClient(url, anonKey);
     // Ping by attempting to read from a table or checking auth settings
-    const { error } = await testClient.from('temple_profiles').select('id').limit(1);
+    const { error } = await testClient.from('tenants').select('id').limit(1);
 
     if (error && error.code !== 'PGRST116') {
-      // If table doesn't exist yet, it's still reachable via PostgREST
       if (error.message.includes('relation') && error.message.includes('does not exist')) {
         return {
           success: true,

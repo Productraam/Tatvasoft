@@ -32,6 +32,7 @@ import { TempleLoginPage } from './pages/temple/TempleLoginPage';
 
 import { storageService } from './services/storageService';
 import { saasService } from './services/saasService';
+import { signInPlatformAdmin, listMfaFactors, challengeMfa, verifyMfaCode } from './services/supabaseService';
 import { canAccessTab, firstAllowedTab } from './services/permissions';
 import { FeedbackProvider } from './components/ui/Feedback';
 import { UserRole } from './types/accounting';
@@ -138,29 +139,148 @@ const SubdomainRequiredPage: React.FC = () => {
 const AdminLoginPage: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
+  const [factorId, setFactorId] = useState<string | null>(null);
+  const [challengeId, setChallengeId] = useState<string | null>(null);
+  const [step, setStep] = useState<'LOGIN' | 'MFA'>('LOGIN');
   const [error, setError] = useState('');
-  const submit = (event: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+
+  const handlePasswordSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (username.trim() !== 'superadmin' || password !== 'TempleOS@2026') {
-      setError('Invalid platform administrator credentials.');
+    setError('');
+    const cleanUser = username.trim();
+    const cleanPass = password.trim();
+
+    if (!cleanUser || !cleanPass) {
+      setError('Username and Password are required.');
       return;
     }
-    sessionStorage.setItem('temple_platform_admin_auth', 'true');
-    onLogin();
+
+    setLoading(true);
+
+    try {
+      const authResult = await signInPlatformAdmin(cleanUser, cleanPass);
+      if (authResult.requiresMfa) {
+        const factors = await listMfaFactors();
+        const totpFactor = factors.totp?.[0];
+        if (totpFactor) {
+          const chal = await challengeMfa(totpFactor.id);
+          setFactorId(totpFactor.id);
+          setChallengeId(chal.id);
+          setStep('MFA');
+          setLoading(false);
+          return;
+        }
+      }
+
+      sessionStorage.setItem('temple_platform_admin_auth', 'true');
+      setLoading(false);
+      onLogin();
+    } catch (err: any) {
+      setLoading(false);
+      setError(err?.message || 'Invalid platform administrator credentials.');
+    }
   };
+
+  const handleMfaVerifySubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+    if (!factorId || !challengeId || mfaCode.trim().length !== 6) {
+      setError('Please enter a valid 6-digit authenticator code.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await verifyMfaCode(factorId, challengeId, mfaCode.trim());
+      sessionStorage.setItem('temple_platform_admin_auth', 'true');
+      sessionStorage.setItem('temple_platform_mfa_verified', 'true');
+      setLoading(false);
+      onLogin();
+    } catch (err: any) {
+      setLoading(false);
+      setError(err?.message || 'Invalid or expired TOTP verification code.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-      <form onSubmit={submit} className="w-full max-w-sm bg-white rounded-2xl p-7 shadow-2xl space-y-4">
+      <div className="w-full max-w-sm bg-white rounded-2xl p-7 shadow-2xl space-y-4">
         <div className="text-center">
           <ShieldCheck className="w-10 h-10 mx-auto text-purple-600" />
           <h1 className="text-xl font-bold text-slate-900 mt-2">Platform Administration</h1>
-          <p className="text-xs text-slate-500 mt-1">Authenticate to continue to SuperAdmin.</p>
+          <p className="text-xs text-slate-500 mt-1">
+            {step === 'MFA' ? 'Enter 6-digit TOTP code from your Authenticator App' : 'Authenticate to continue to SuperAdmin.'}
+          </p>
         </div>
-        <input aria-label="Platform username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" className="w-full px-3 py-2.5 border rounded-xl text-sm" autoComplete="username" />
-        <input aria-label="Platform password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full px-3 py-2.5 border rounded-xl text-sm" autoComplete="current-password" />
-        {error && <p role="alert" className="text-xs text-rose-600">{error}</p>}
-        <button type="submit" className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm">Sign In</button>
-      </form>
+
+        {error && <p role="alert" className="text-xs text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-200">{error}</p>}
+
+        {step === 'LOGIN' ? (
+          <form onSubmit={handlePasswordSubmit} className="space-y-3">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Username / Email</label>
+              <input
+                aria-label="Platform username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="e.g. superadmin"
+                className="w-full px-3 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 outline-none font-medium text-slate-900"
+                autoComplete="username"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Password</label>
+              <input
+                aria-label="Platform password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="e.g. TempleOS@2026"
+                className="w-full px-3 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 outline-none font-medium text-slate-900"
+                autoComplete="current-password"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm transition cursor-pointer btn-press disabled:opacity-60"
+            >
+              {loading ? 'Authenticating...' : 'Sign In'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleMfaVerifySubmit} className="space-y-3">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Authenticator App Token</label>
+              <input
+                type="text"
+                maxLength={6}
+                autoFocus
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="6-digit code (e.g. 123456)"
+                className="w-full text-center text-lg tracking-widest font-mono py-2.5 border rounded-xl focus:ring-2 focus:ring-purple-500/20 outline-none text-slate-900 font-bold"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm transition cursor-pointer btn-press disabled:opacity-60"
+            >
+              {loading ? 'Verifying Code...' : 'Verify TOTP MFA Code'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStep('LOGIN')}
+              className="w-full text-xs text-slate-500 hover:text-slate-800 transition py-1 cursor-pointer"
+            >
+              &larr; Back to Password Login
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   );
 };

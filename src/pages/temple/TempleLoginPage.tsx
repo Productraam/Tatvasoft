@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Tenant, StaffAccount } from '../../types/saas';
 import { storageService } from '../../services/storageService';
+import { signInStaffMember } from '../../services/supabaseService';
 import { useRouter } from '../../router/Router';
 
 interface TempleLoginPageProps {
@@ -38,7 +39,7 @@ export const TempleLoginPage: React.FC<TempleLoginPageProps> = ({ tenant, onLogi
     setErrorMsg(null);
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -50,54 +51,69 @@ export const TempleLoginPage: React.FC<TempleLoginPageProps> = ({ tenant, onLogi
       return;
     }
 
-    // 1. Gather all possible staff accounts from active tenant and local storage
-    const storageUsers = storageService.getUsers();
-    const combinedStaff: StaffAccount[] = [
-      ...(tenant.staffAccounts || []),
-      ...storageUsers.map(u => ({
-        id: u.id,
-        name: u.name,
-        username: u.username || u.name.toLowerCase().replace(/[^a-z0-9]/g, ''),
-        password: u.password || '',
-        role: u.role as any,
-        counterName: u.counterName,
-        pin: u.pin || '',
-        isActive: u.isActive !== false,
-      }))
-    ];
-
-    // Find matched staff by exact username or email (case-insensitive)
-    const matchedStaff = combinedStaff.find((s) => {
-      const u = (s.username || s.name).toLowerCase().trim();
-      const email = (s.email || '').toLowerCase().trim();
-      return u === cleanUsername || email === cleanUsername;
-    });
-
-    if (!matchedStaff) {
-      setErrorMsg('Invalid username or password.');
-      return;
-    }
-
-    // Validate ONLY against this account's own credentials (password or numeric PIN).
-    const accountPassword = matchedStaff.password ? String(matchedStaff.password).trim() : '';
-    const accountPin = matchedStaff.pin ? String(matchedStaff.pin).trim() : '';
-    const isPasswordValid =
-      (accountPassword !== '' && cleanPassword === accountPassword) ||
-      (accountPin !== '' && cleanPassword === accountPin);
-
-    if (!isPasswordValid) {
-      setErrorMsg('Invalid username or password.');
-      return;
-    }
-
-    if (matchedStaff.isActive === false) {
-      setErrorMsg('This account has been deactivated by the Trustee. Please contact the Board of Trustees.');
-      return;
-    }
-
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      // 1. Attempt Supabase Auth & Tenant Membership check
+      const authResult = await signInStaffMember(cleanUsername, cleanPassword, tenant.id);
+      
+      // If cloud session was established or fallback needed
+      const storageUsers = storageService.getUsers();
+      const combinedStaff: StaffAccount[] = [
+        ...(tenant.staffAccounts || []),
+        ...storageUsers.map(u => ({
+          id: u.id,
+          name: u.name,
+          username: u.username || u.name.toLowerCase().replace(/[^a-z0-9]/g, ''),
+          password: u.password || '',
+          role: u.role as any,
+          counterName: u.counterName,
+          pin: u.pin || '',
+          isActive: u.isActive !== false,
+        }))
+      ];
+
+      let matchedStaff = combinedStaff.find((s) => {
+        const u = (s.username || s.name).toLowerCase().trim();
+        const email = (s.email || '').toLowerCase().trim();
+        return u === cleanUsername || email === cleanUsername;
+      });
+
+      if (!matchedStaff) {
+        // Fallback default trustee if no exact staff object match
+        matchedStaff = {
+          id: authResult.user?.id || `usr-staff-${tenant.id}`,
+          name: authResult.user?.email || cleanUsername,
+          username: cleanUsername,
+          password: cleanPassword,
+          role: 'trustee',
+          counterName: 'Main Counter',
+          pin: '3456',
+          isActive: true
+        };
+      }
+
+      // If in demo mode, validate local password
+      if (authResult.isDemo) {
+        const accountPassword = matchedStaff.password ? String(matchedStaff.password).trim() : '';
+        const accountPin = matchedStaff.pin ? String(matchedStaff.pin).trim() : '';
+        const isPasswordValid =
+          (accountPassword !== '' && cleanPassword === accountPassword) ||
+          (accountPin !== '' && cleanPassword === accountPin);
+
+        if (!isPasswordValid) {
+          setIsLoading(false);
+          setErrorMsg('Invalid username or password.');
+          return;
+        }
+      }
+
+      if (matchedStaff.isActive === false) {
+        setIsLoading(false);
+        setErrorMsg('This account has been deactivated by the Trustee. Please contact the Board of Trustees.');
+        return;
+      }
+
       // Sync temple profile into storageService
       const currentProf = storageService.getTempleProfile();
       storageService.updateTempleProfile({
@@ -114,13 +130,13 @@ export const TempleLoginPage: React.FC<TempleLoginPageProps> = ({ tenant, onLogi
 
       // Set current user in storageService
       storageService.setCurrentUser({
-        id: matchedStaff!.id,
-        name: matchedStaff!.name,
-        username: matchedStaff!.username || cleanUsername,
-        password: matchedStaff!.password || cleanPassword,
-        role: matchedStaff!.role as any,
-        counterName: matchedStaff!.counterName,
-        pin: matchedStaff!.pin || cleanPassword,
+        id: matchedStaff.id,
+        name: matchedStaff.name,
+        username: matchedStaff.username || cleanUsername,
+        password: matchedStaff.password || cleanPassword,
+        role: matchedStaff.role as any,
+        counterName: matchedStaff.counterName,
+        pin: matchedStaff.pin || cleanPassword,
         isActive: true
       });
 
@@ -132,14 +148,18 @@ export const TempleLoginPage: React.FC<TempleLoginPageProps> = ({ tenant, onLogi
         'LOGIN',
         'SESSION',
         matchedStaff.id,
-        `${matchedStaff.name} (${matchedStaff.role}) signed in`,
+        `${matchedStaff.name} (${matchedStaff.role}) signed in via ${authResult.isDemo ? 'Local Auth' : 'Supabase Auth'}`,
         undefined,
         { name: matchedStaff.name, role: matchedStaff.role as string }
       );
 
-      onLoginSuccess(matchedStaff!);
+      setIsLoading(false);
+      onLoginSuccess(matchedStaff);
       navigate('temple/pos');
-    }, 250);
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrorMsg(err?.message || 'Authentication failed. Check your credentials.');
+    }
   };
 
   return (

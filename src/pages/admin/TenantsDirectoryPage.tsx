@@ -143,7 +143,7 @@ export const TenantsDirectoryPage: React.FC = () => {
 
     setTenants(saasService.getTenants());
     setIsModalOpen(false);
-    showToast(`Successfully provisioned ${newTenant.name} at subdomain http://${sub}.localhost:5173/`);
+    showToast(`Successfully provisioned ${newTenant.name} at ${saasService.getSubdomainUrl(sub)}`);
 
     setFormName('');
     setFormSubdomain('');
@@ -341,7 +341,7 @@ export const TenantsDirectoryPage: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredTenants.map((t) => {
-          const subUrl = `http://${t.subdomain || t.slug}.localhost:5173/`;
+          const subUrl = saasService.getSubdomainUrl(t.subdomain || t.slug);
                   const trustee = (t.staffAccounts || []).find((staff) => staff.role === 'trustee') || t.staffAccounts?.[0];
                   const statusStyles = t.status === 'ACTIVE'
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -418,7 +418,7 @@ export const TenantsDirectoryPage: React.FC = () => {
                   Define Temple Subdomain (Dedicated Portal URL) *
                 </label>
                 <div className="flex items-center gap-1 bg-white p-1.5 rounded-xl border border-purple-200">
-                  <span className="text-slate-400 font-mono text-xs pl-2">http://</span>
+                  <span className="text-slate-400 font-mono text-xs pl-2">{saasService.getPortalDomainPrefix()}</span>
                   <input
                     type="text"
                     required
@@ -427,10 +427,10 @@ export const TenantsDirectoryPage: React.FC = () => {
                     onChange={(e) => setFormSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                     className="flex-1 py-1 px-1 font-mono font-bold text-purple-700 focus:outline-none text-xs"
                   />
-                  <span className="text-slate-400 font-mono text-xs pr-2">.localhost:5173/</span>
+                  <span className="text-slate-400 font-mono text-xs pr-2">{saasService.getPortalDomainSuffix()}</span>
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  Direct login URL for temple staff: <strong className="text-purple-700 font-mono">http://{formSubdomain || 'temple'}.localhost:5173/</strong>
+                  Direct login URL for temple staff: <strong className="text-purple-700 font-mono">{saasService.getSubdomainUrl(formSubdomain || 'temple')}</strong>
                 </p>
               </div>
 
@@ -636,7 +636,7 @@ export const TenantsDirectoryPage: React.FC = () => {
               <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-1.5">
                 <label className="font-bold text-purple-900 block">Subdomain Prefix</label>
                 <div className="flex items-center gap-1 bg-white p-1.5 rounded-xl border border-purple-200">
-                  <span className="text-slate-400 font-mono text-xs pl-2">http://</span>
+                  <span className="text-slate-400 font-mono text-xs pl-2">{saasService.getPortalDomainPrefix()}</span>
                   <input
                     type="text"
                     required
@@ -644,11 +644,11 @@ export const TenantsDirectoryPage: React.FC = () => {
                     onChange={(e) => setEditSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                     className="flex-1 py-1 px-1 font-mono font-bold text-purple-700 focus:outline-none text-xs"
                   />
-                  <span className="text-slate-400 font-mono text-xs pr-2">.localhost:5173/</span>
+                  <span className="text-slate-400 font-mono text-xs pr-2">{saasService.getPortalDomainSuffix()}</span>
                 </div>
                 <div className="text-[11px] text-slate-500">
-                  Live link: <a href={`http://${editSubdomain || 'temple'}.localhost:5173/`} target="_blank" rel="noreferrer" className="text-purple-700 font-mono font-bold hover:underline">
-                    http://{editSubdomain || 'temple'}.localhost:5173/
+                  Live link: <a href={saasService.getSubdomainUrl(editSubdomain || 'temple')} target="_blank" rel="noreferrer" className="text-purple-700 font-mono font-bold hover:underline">
+                    {saasService.getSubdomainUrl(editSubdomain || 'temple')}
                   </a>
                 </div>
               </div>

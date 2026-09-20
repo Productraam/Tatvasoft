@@ -384,6 +384,21 @@ export const saasService = {
     return `${window.location.origin}/?tenant=${subdomain.toLowerCase()}#/temple/pos`;
   },
 
+  getPortalDomainPrefix(): string {
+    if (typeof window === 'undefined') return 'https://';
+    return `${window.location.protocol}//`;
+  },
+
+  getPortalDomainSuffix(): string {
+    if (typeof window === 'undefined') return '.tatva.app';
+    const hostname = window.location.hostname.toLowerCase();
+    if (hostname.includes('localhost') || hostname === '127.0.0.1') {
+      const port = window.location.port ? `:${window.location.port}` : '';
+      return `.localhost${port}/`;
+    }
+    return '.tatva.app';
+  },
+
   updateTenantSubdomain(id: string, subdomain: string): Tenant {
     const clean = subdomain.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
     return this.updateTenant(id, { subdomain: clean });

@@ -7,6 +7,7 @@ import {
   ShieldCheck, IndianRupee, Flame 
 } from 'lucide-react';
 import { useRouter } from '../router/Router';
+import { saasService } from '../services/saasService';
 
 // --- Decorative Indic SVG motifs ---
 
@@ -199,18 +200,19 @@ export const MarketingLandingPage: React.FC = () => {
           </button>
 
           <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-stone-600">
-            <button onClick={() => navigate('home')} className="text-orange-600 border-b-2 border-orange-500 pb-0.5">Home</button>
+            <button onClick={() => navigate('home')} className="text-orange-600 border-b-2 border-orange-500 pb-0.5 cursor-pointer">Home</button>
             <a href="#features" className="hover:text-orange-600 transition-colors">Features</a>
             <a href="#about" className="hover:text-orange-600 transition-colors">About</a>
             <a href="#contact" className="hover:text-orange-600 transition-colors">Contact</a>
+            <button onClick={() => navigate('admin')} className="text-purple-700 hover:text-purple-900 transition-colors font-bold cursor-pointer">SuperAdmin</button>
           </nav>
 
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('temple/pos')}
-              className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 transition-all shadow-md shadow-orange-600/25"
+              className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 transition-all shadow-md shadow-orange-600/25 cursor-pointer"
             >
-              Login
+              Temple Login
             </button>
             <a
               href="#contact"
@@ -255,13 +257,20 @@ export const MarketingLandingPage: React.FC = () => {
                   <span>Begin Your Journey</span>
                   <ArrowRight className="w-4 h-4" />
                 </a>
-                <a
-                  href="http://demo.localhost:5173/"
-                  className="btn-press px-7 py-3.5 bg-white hover:bg-amber-50 text-stone-800 border border-orange-200 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2.5"
+                <button
+                  onClick={() => {
+                    const demoUrl = saasService.getSubdomainUrl('sidhodlur');
+                    if (demoUrl.startsWith('http') && !demoUrl.includes(window.location.host)) {
+                      window.location.href = demoUrl;
+                    } else {
+                      navigate('tenant/sidhodlur');
+                    }
+                  }}
+                  className="btn-press px-7 py-3.5 bg-white hover:bg-amber-50 text-stone-800 border border-orange-200 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2.5 cursor-pointer"
                 >
                   <Flame className="w-5 h-5 text-orange-600" />
                   <span>Explore Live Demo</span>
-                </a>
+                </button>
               </div>
 
               <div className="mt-8 text-xs font-bold tracking-[0.22em] text-orange-500 uppercase">

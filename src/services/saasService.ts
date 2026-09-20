@@ -374,8 +374,13 @@ export const saasService = {
   },
 
   getSubdomainUrl(subdomain: string): string {
+    if (typeof window === 'undefined') return `/?tenant=${subdomain.toLowerCase()}`;
+    const hostname = window.location.hostname.toLowerCase();
     const port = window.location.port ? `:${window.location.port}` : '';
-    return `http://${subdomain.toLowerCase()}.localhost${port}/`;
+    if (hostname.includes('localhost') || hostname === '127.0.0.1') {
+      return `http://${subdomain.toLowerCase()}.localhost${port}/`;
+    }
+    return `${window.location.origin}/?tenant=${subdomain.toLowerCase()}#/temple/pos`;
   },
 
   updateTenantSubdomain(id: string, subdomain: string): Tenant {

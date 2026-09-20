@@ -58,25 +58,78 @@ const AccessDenied: React.FC<{ onGoBack: () => void }> = ({ onGoBack }) => (
 
 const SubdomainRequiredPage: React.FC = () => {
   const { navigate } = useRouter();
+  const tenants = saasService.getTenants();
+
+  const handleSelectTenant = (subdomain?: string, id?: string) => {
+    if (subdomain) {
+      const url = saasService.getSubdomainUrl(subdomain);
+      if (url.startsWith('http') && !url.includes(window.location.host)) {
+        window.location.href = url;
+      } else {
+        navigate(`tenant/${subdomain}`);
+      }
+    } else if (id) {
+      saasService.setActiveTenant(id);
+      window.location.reload();
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#FFFDF9] flex items-center justify-center p-6 text-center">
-      <div className="max-w-md">
+    <div className="min-h-screen bg-gradient-to-b from-[#FFFDF9] via-[#fff8ef] to-[#FFFDF9] flex items-center justify-center p-6 text-center">
+      <div className="max-w-2xl w-full bg-white rounded-3xl p-8 border border-orange-200/80 shadow-2xl shadow-orange-950/10">
         <div className="w-16 h-16 mx-auto rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center">
           <Building2 className="w-8 h-8" />
         </div>
-        <h1 className="mt-5 text-2xl font-extrabold text-stone-900">Temple portal URL required</h1>
-        <p className="mt-3 text-sm leading-relaxed text-stone-600">
-          Temple staff must open their dedicated temple subdomain, such as
-          <span className="block mt-2 font-mono font-bold text-orange-700">https://your-temple.tatva.app</span>
-          The generic temple URL does not select a temple account.
+        <h1 className="mt-5 text-2xl sm:text-3xl font-black text-stone-900">Select Temple Portal</h1>
+        <p className="mt-2 text-sm leading-relaxed text-stone-600 max-w-lg mx-auto">
+          Please select your registered temple or trust account to enter the daily operations portal, POS counter, and financial management system.
         </p>
-        <button
-          onClick={() => navigate('home')}
-          className="mt-6 px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold transition"
-        >
-          Back to TATVa Home
-        </button>
+
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+          {tenants.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => handleSelectTenant(t.subdomain || t.slug, t.id)}
+              className="p-5 rounded-2xl border border-orange-200 hover:border-orange-500 bg-orange-50/40 hover:bg-orange-100/50 transition-all text-stone-900 group cursor-pointer shadow-xs flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-orange-700 bg-orange-200/60 px-2 py-0.5 rounded-md">
+                    {t.deity || 'TEMPLE'}
+                  </span>
+                  <span className="text-xs font-mono font-bold text-stone-400 group-hover:text-orange-600">
+                    {t.subdomain}.tatva.app &rarr;
+                  </span>
+                </div>
+                <h2 className="font-serif font-bold text-base mt-2 text-stone-900 group-hover:text-orange-700 leading-snug">
+                  {t.name}
+                </h2>
+                <p className="text-xs text-stone-500 mt-1">{t.trustName}</p>
+                <p className="text-[11px] text-stone-400 mt-0.5">{t.city}, {t.state}</p>
+              </div>
+              <div className="mt-3 pt-2 border-t border-orange-200/60 flex items-center justify-between text-[11px] text-stone-600 font-medium">
+                <span>{t.activeCounters || 1} Counters Active</span>
+                <span className="font-bold text-orange-600">Enter Portal &rarr;</span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-stone-200 flex flex-wrap items-center justify-between gap-4">
+          <button
+            onClick={() => navigate('home')}
+            className="px-4 py-2 rounded-xl text-stone-600 hover:text-stone-900 hover:bg-stone-100 text-xs font-bold transition cursor-pointer"
+          >
+            &larr; Back to TATVa Home
+          </button>
+          <button
+            onClick={() => navigate('admin')}
+            className="px-4 py-2 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <Crown className="w-3.5 h-3.5" />
+            <span>Platform SuperAdmin</span>
+          </button>
+        </div>
       </div>
     </div>
   );

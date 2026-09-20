@@ -54,10 +54,9 @@ export const TempleLoginPage: React.FC<TempleLoginPageProps> = ({ tenant, onLogi
     setIsLoading(true);
 
     try {
-      // 1. Attempt Supabase Auth & Tenant Membership check
+      // 1. Enforce Cloud Supabase Auth & Tenant Membership check
       const authResult = await signInStaffMember(cleanUsername, cleanPassword, tenant.id);
       
-      // If cloud session was established or fallback needed
       const storageUsers = storageService.getUsers();
       const combinedStaff: StaffAccount[] = [
         ...(tenant.staffAccounts || []),
@@ -80,32 +79,16 @@ export const TempleLoginPage: React.FC<TempleLoginPageProps> = ({ tenant, onLogi
       });
 
       if (!matchedStaff) {
-        // Fallback default trustee if no exact staff object match
         matchedStaff = {
           id: authResult.user?.id || `usr-staff-${tenant.id}`,
           name: authResult.user?.email || cleanUsername,
           username: cleanUsername,
           password: cleanPassword,
-          role: 'trustee',
+          role: (authResult.membership?.role as any) || 'trustee',
           counterName: 'Main Counter',
-          pin: '3456',
+          pin: cleanPassword,
           isActive: true
         };
-      }
-
-      // If in demo mode, validate local password
-      if (authResult.isDemo) {
-        const accountPassword = matchedStaff.password ? String(matchedStaff.password).trim() : '';
-        const accountPin = matchedStaff.pin ? String(matchedStaff.pin).trim() : '';
-        const isPasswordValid =
-          (accountPassword !== '' && cleanPassword === accountPassword) ||
-          (accountPin !== '' && cleanPassword === accountPin);
-
-        if (!isPasswordValid) {
-          setIsLoading(false);
-          setErrorMsg('Invalid username or password.');
-          return;
-        }
       }
 
       if (matchedStaff.isActive === false) {

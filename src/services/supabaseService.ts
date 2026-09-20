@@ -49,15 +49,14 @@ export const signInWithPassword = async (email: string, password: string) => {
 export const signInStaffMember = async (identifier: string, pass: string, tenantId?: string) => {
   const client = getSupabaseClient();
   if (!client) {
-    // Local / Demo mode fallback
-    return { isDemo: true, email: identifier };
+    throw new Error('Cloud Authentication Error: Supabase project credentials are missing. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
 
   const email = identifier.includes('@') ? identifier : `${identifier}@temple.org`;
   const { data, error } = await client.auth.signInWithPassword({ email, password: pass });
-  if (error) throw error;
+  if (error) throw new Error(`Cloud Authentication Failed: ${error.message}`);
 
-  // Check tenant membership if tenantId is provided
+  // Verify active tenant membership in Supabase Postgres
   if (tenantId && data.user) {
     const { data: membership, error: memError } = await client
       .from('tenant_memberships')
@@ -68,28 +67,26 @@ export const signInStaffMember = async (identifier: string, pass: string, tenant
       .single();
 
     if (memError || !membership) {
-      throw new Error(`Account does not have active staff access to tenant #${tenantId}.`);
+      throw new Error(`Cloud Authorization Failed: User #${data.user.email} does not have an active staff membership for tenant #${tenantId}.`);
     }
+
+    return { user: data.user, session: data.session, membership };
   }
 
-  return { isDemo: false, user: data.user, session: data.session };
+  return { user: data.user, session: data.session };
 };
 
 export const signInPlatformAdmin = async (identifier: string, pass: string) => {
   const client = getSupabaseClient();
   if (!client) {
-    // Demo mode fallback
-    if (identifier === 'superadmin' && pass === 'TempleOS@2026') {
-      return { isDemo: true, requiresMfa: false, user: { id: 'usr-demo-admin', email: 'superadmin@tatva.org' } };
-    }
-    throw new Error('Invalid platform administrator credentials.');
+    throw new Error('Cloud Authentication Error: Supabase project credentials are missing. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
 
   const email = identifier.includes('@') ? identifier : `${identifier}@tatva.org`;
   const { data, error } = await client.auth.signInWithPassword({ email, password: pass });
-  if (error) throw error;
+  if (error) throw new Error(`Cloud Authentication Failed: ${error.message}`);
 
-  // Verify platform profile
+  // Verify platform profile in Supabase Postgres
   const { data: profile, error: profError } = await client
     .from('platform_profiles')
     .select('*')
@@ -98,15 +95,14 @@ export const signInPlatformAdmin = async (identifier: string, pass: string) => {
     .single();
 
   if (profError || !profile) {
-    throw new Error('Account does not have active Platform Administrator privileges.');
+    throw new Error('Cloud Authorization Failed: Account does not have active Platform Administrator privileges in platform_profiles.');
   }
 
-  // Check MFA status
+  // Check TOTP MFA status
   const { data: mfaAssurance } = await client.auth.mfa.getAuthenticatorAssuranceLevel();
   const requiresMfa = profile.mfa_required && mfaAssurance?.currentLevel !== 'aal2';
 
   return {
-    isDemo: false,
     requiresMfa,
     profile,
     user: data.user,

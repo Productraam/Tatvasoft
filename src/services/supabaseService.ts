@@ -5,14 +5,20 @@ let supabaseClient: SupabaseClient | null = null;
 
 export const getSupabaseClient = (): SupabaseClient | null => {
   const config = storageService.getCloudConfig();
-  if (!config.supabaseUrl || !config.supabaseAnonKey) {
+  const envUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
+  const envAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim();
+
+  const url = envUrl || config.supabaseUrl;
+  const anonKey = envAnonKey || config.supabaseAnonKey;
+
+  if (!url || !anonKey) {
     supabaseClient = null;
     return null;
   }
 
   if (!supabaseClient) {
     try {
-      supabaseClient = createClient(config.supabaseUrl, config.supabaseAnonKey, {
+      supabaseClient = createClient(url, anonKey, {
         auth: {
           persistSession: true,
           autoRefreshToken: true,

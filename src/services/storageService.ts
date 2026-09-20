@@ -1622,6 +1622,12 @@ class StorageService {
       retryCount: 0,
     });
     this.saveSyncQueue(queue);
+
+    if (typeof window !== 'undefined') {
+      import('./syncEngine').then(({ syncEngine }) => {
+        void syncEngine.syncNow();
+      }).catch(() => undefined);
+    }
   }
 
   // --- Cloud Configuration ---

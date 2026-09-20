@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <path d="M32 4C32 4 22 20 22 30C22 35.5228 26.4772 40 32 40C37.5228 40 42 35.5228 42 30C42 20 32 4 32 4Z" fill="url(#flameGrad)"/>
+  <path d="M32 16C32 16 26 24 26 30C26 33.3137 28.6863 36 32 36C35.3137 36 38 33.3137 38 30C38 24 32 16 32 16Z" fill="#FFF7ED"/>
+  <path d="M8 38C8 38 12 56 32 56C52 56 56 38 56 38C56 38 48 44 32 44C16 44 8 38 8 38Z" fill="url(#diyaBase)"/>
+  <path d="M18 56L14 60H50L46 56H18Z" fill="#B45309"/>
+  <defs>
+    <linearGradient id="flameGrad" x1="32" y1="4" x2="32" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB703"/>
+      <stop offset="0.5" stop-color="#FB8500"/>
+      <stop offset="1" stop-color="#D00000"/>
+    </linearGradient>
+    <linearGradient id="diyaBase" x1="8" y1="38" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D97706"/>
+      <stop offset="0.5" stop-color="#B45309"/>
+      <stop offset="1" stop-color="#78350F"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -1,0 +1,294 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  :root {
+    --canvas: #F8F5EF;
+    --surface: #FFFCF7;
+    --ink: #24211D;
+    --muted: #756F66;
+    --saffron-primary: #C96A24;
+    --saffron-dark: #984719;
+    --teal: #287C78;
+    --gold: #B88A3B;
+    --border: #E5DED2;
+  }
+
+  /* Smooth global typography */
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: 'Manrope', 'Avenir Next', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
+  }
+
+  .font-sans { font-family: 'Manrope', 'Avenir Next', sans-serif; }
+  .font-serif { font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif; }
+  .font-mono { font-family: 'IBM Plex Mono', 'Cascadia Mono', monospace; }
+
+  /* Better focus rings */
+  button:focus-visible,
+  select:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid #f97316;
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+}
+
+/* ========================== */
+/*  Typography Scale          */
+/* ========================== */
+@layer components {
+  .text-display {
+    @apply font-serif font-bold text-stone-900 text-3xl md:text-4xl leading-tight tracking-tight;
+  }
+  .text-h1 {
+    @apply font-serif font-bold text-stone-900 text-2xl leading-snug tracking-tight;
+  }
+  .text-h2 {
+    @apply font-serif font-bold text-stone-900 text-lg leading-snug;
+  }
+  .text-h3 {
+    @apply font-sans font-bold text-stone-900 text-sm;
+  }
+  .text-body {
+    @apply font-sans text-sm text-stone-600 leading-relaxed;
+  }
+  .text-caption {
+    @apply font-sans text-xs text-stone-500;
+  }
+  .text-data {
+    @apply font-mono tabular-nums text-stone-900;
+  }
+}
+
+/* ========================== */
+/*  Custom Scrollbar          */
+/* ========================== */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #fbb98060;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #FF7700;
+}
+
+/* ========================== */
+/*  Indic Theme Classes       */
+/* ========================== */
+.font-indic-title {
+  font-family: 'Cinzel', 'Rozha One', 'Georgia', serif;
+}
+
+.indic-border-top {
+  border-top: 3px solid;
+  border-image: linear-gradient(to right, #FF7700, #FBBF24, #FF7700) 1;
+}
+
+.indic-card-glow {
+  box-shadow: 0 8px 24px -12px rgba(36, 33, 29, 0.28), 0 2px 8px -1px rgba(201, 106, 36, 0.08);
+}
+
+.ledger-surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px -16px rgba(36, 33, 29, 0.3);
+}
+
+.ledger-number {
+  font-family: 'IBM Plex Mono', 'Cascadia Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* ========================== */
+/*  Print Styles              */
+/* ========================== */
+@media print {
+  body * { visibility: hidden; }
+  #printable-receipt, #printable-receipt *,
+  #printable-payment-order, #printable-payment-order * { visibility: visible; }
+  #printable-receipt, #printable-payment-order {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: 0 auto;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .no-print { display: none !important; }
+}
+
+/* ========================================== */
+/*  POLISH: Animations & Micro-interactions   */
+/* ========================================== */
+
+/* --- Page fade-in entrance --- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeInUp 0.45s ease-out both;
+}
+
+/* --- Staggered children entrance --- */
+.animate-stagger > * {
+  animation: fadeInUp 0.4s ease-out both;
+}
+.animate-stagger > *:nth-child(1) { animation-delay: 0.03s; }
+.animate-stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.animate-stagger > *:nth-child(3) { animation-delay: 0.09s; }
+.animate-stagger > *:nth-child(4) { animation-delay: 0.12s; }
+.animate-stagger > *:nth-child(5) { animation-delay: 0.15s; }
+.animate-stagger > *:nth-child(6) { animation-delay: 0.18s; }
+.animate-stagger > *:nth-child(7) { animation-delay: 0.21s; }
+.animate-stagger > *:nth-child(8) { animation-delay: 0.24s; }
+.animate-stagger > *:nth-child(9) { animation-delay: 0.27s; }
+.animate-stagger > *:nth-child(10) { animation-delay: 0.30s; }
+
+/* --- Card hover lift --- */
+.card-lift {
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.card-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.08),
+              0 4px 10px -2px rgba(255, 119, 0, 0.06);
+}
+
+/* --- Button press scale --- */
+.btn-press {
+  transition: transform 0.12s ease;
+}
+.btn-press:active {
+  transform: scale(0.96);
+}
+
+/* --- Pulsing live dot --- */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(34, 197, 94, 0);
+  }
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  display: inline-block;
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* --- Counter value (tabular nums) --- */
+.counter-value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  transition: color 0.3s ease;
+}
+
+/* --- Glass card effect --- */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+/* --- Sidebar active glow (left bar) --- */
+.sidebar-active-glow {
+  box-shadow: inset 3px 0 0 0 #f97316,
+              0 2px 8px -2px rgba(249, 115, 22, 0.15);
+}
+
+/* --- Gradient text (saffron) --- */
+.text-gradient-saffron {
+  background: linear-gradient(135deg, #FF7700 0%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* --- Shimmer top bar --- */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.shimmer-bar {
+  background: linear-gradient(
+    90deg,
+    #ea580c 0%,
+    #f59e0b 25%,
+    #ea580c 50%,
+    #f59e0b 75%,
+    #ea580c 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 4s linear infinite;
+}
+
+/* --- Icon breathe shadow --- */
+@keyframes breathe {
+  0%, 100% {
+    box-shadow: 0 2px 10px -2px rgba(234, 88, 12, 0.25);
+  }
+  50% {
+    box-shadow: 0 4px 18px -2px rgba(234, 88, 12, 0.45);
+  }
+}
+
+.icon-breathe {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+/* --- Smooth main content transition --- */
+main {
+  animation: fadeInUp 0.35s ease-out both;
+}
+
+/* --- Table row hover --- */
+tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+/* --- Smooth all interactive elements --- */
+a, button, select, input {
+  transition: all 0.2s ease;
+}
+
+/* --- Avatar ring glow --- */
+.avatar-ring {
+  box-shadow: 0 0 0 2px #fff,
+              0 0 0 3.5px #f97316;
+}

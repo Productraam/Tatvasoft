@@ -1,0 +1,39 @@
+project_id = "tatva-temple-accounts"
+
+[api]
+enabled = true
+
+[db]
+port = 54322
+
+[studio]
+enabled = false
+
+[auth]
+enable_signup = true
+minimum_password_length = 12
+
+[auth.mfa]
+enabled = true
+max_enrolled_factors = 5
+
+[functions.api]
+verify_jwt = true
+
+[functions.provision-tenant]
+verify_jwt = true
+
+[functions.payment-webhook]
+verify_jwt = false
+
+[functions.messaging-webhook]
+verify_jwt = false
+
+[functions.backup-run]
+verify_jwt = true
+
+[functions.health-check]
+verify_jwt = false
+
+[functions.automation-run]
+verify_jwt = true

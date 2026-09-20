@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { CreditCard, MessageSquare, Sliders, BarChart3 } from 'lucide-react';
+import { CreditCard, MessageSquare, Sliders, BarChart3, Crown } from 'lucide-react';
 import { GatewayRevenuePage } from './GatewayRevenuePage';
 import { CommunicationHubPage } from './CommunicationHubPage';
 import { FeatureFlagsPage } from './FeatureFlagsPage';
 import { GlobalAnalyticsPage } from './GlobalAnalyticsPage';
+import { SubAdminGovernancePage } from './SubAdminGovernancePage';
 
-type OpsTab = 'payments' | 'communications' | 'feature-flags' | 'analytics';
+type OpsTab = 'payments' | 'subadmins' | 'communications' | 'feature-flags' | 'analytics';
 
 const TABS: { id: OpsTab; label: string; icon: typeof CreditCard }[] = [
   { id: 'payments', label: 'Payments & Gateways', icon: CreditCard },
+  { id: 'subadmins', label: 'SubAdmin Governance', icon: Crown },
   { id: 'communications', label: 'Communications', icon: MessageSquare },
   { id: 'feature-flags', label: 'Feature Flags', icon: Sliders },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
@@ -22,7 +24,7 @@ export const PlatformOperationsPage: React.FC = () => {
       <div className="px-8 pt-6 pb-0 bg-white border-b border-slate-200 sticky top-0 z-10">
         <h1 className="text-lg font-bold text-slate-900 mb-1">Platform Operations</h1>
         <p className="text-xs text-slate-500 mb-4">
-          Payment gateways, devotee communications, feature rollout, and global analytics in one place.
+          Payment gateways, SubAdmin governance, communications, feature rollout, and global analytics in one place.
         </p>
         <div className="flex items-center gap-1 overflow-x-auto">
           {TABS.map((t) => {
@@ -48,6 +50,7 @@ export const PlatformOperationsPage: React.FC = () => {
 
       <div className="flex-1 overflow-y-auto">
         {tab === 'payments' && <GatewayRevenuePage />}
+        {tab === 'subadmins' && <SubAdminGovernancePage />}
         {tab === 'communications' && <CommunicationHubPage />}
         {tab === 'feature-flags' && <FeatureFlagsPage />}
         {tab === 'analytics' && <GlobalAnalyticsPage />}

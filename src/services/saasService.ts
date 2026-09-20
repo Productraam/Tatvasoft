@@ -11,6 +11,7 @@ import {
   SecurityAnomaly,
   PlatformBroadcast
 } from '../types/saas';
+import { createCloudTenant, fetchCloudTenants } from './supabaseService';
 
 const STORAGE_KEY_TENANTS = 'mandir_saas_tenants_v5';
 const STORAGE_KEY_INVOICES = 'mandir_saas_invoices_v3';
@@ -495,6 +496,10 @@ export const saasService = {
     };
     tenants.unshift(newTenant);
     this.saveTenants(tenants);
+
+    // Persist cleanly into live Supabase Cloud Database (public.tenants & public.tenant_domains)
+    void createCloudTenant(newTenant);
+
     return newTenant;
   },
 
@@ -504,6 +509,7 @@ export const saasService = {
     if (idx >= 0) {
       tenants[idx] = { ...tenants[idx], ...updates };
       this.saveTenants(tenants);
+      void createCloudTenant(tenants[idx]);
       return tenants[idx];
     }
     throw new Error('Tenant not found');

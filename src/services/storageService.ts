@@ -204,10 +204,10 @@ class StorageService {
     }
     if (!localStorage.getItem(STORAGE_KEYS.CLOUD_CONFIG)) {
       const defaultCloudConfig: CloudConfig = {
-        supabaseUrl: '',
-        supabaseAnonKey: '',
-        isConnected: false,
-        isConfigured: false,
+        supabaseUrl: 'https://pvyqubmsptbqekptmrff.supabase.co',
+        supabaseAnonKey: 'sb_publishable_MPnqPf8U4_hbYTA015x-dg_wub4_niy',
+        isConnected: true,
+        isConfigured: true,
         autoSyncEnabled: true,
       };
       localStorage.setItem(STORAGE_KEYS.CLOUD_CONFIG, JSON.stringify(defaultCloudConfig));
@@ -1632,16 +1632,16 @@ class StorageService {
 
   // --- Cloud Configuration ---
   public getCloudConfig(): CloudConfig {
-    return JSON.parse(
-      localStorage.getItem(STORAGE_KEYS.CLOUD_CONFIG) ||
-        JSON.stringify({
-          supabaseUrl: '',
-          supabaseAnonKey: '',
-          isConnected: false,
-          isConfigured: false,
-          autoSyncEnabled: true,
-        })
-    );
+    const raw = localStorage.getItem(STORAGE_KEYS.CLOUD_CONFIG);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return {
+      supabaseUrl: parsed?.supabaseUrl || 'https://pvyqubmsptbqekptmrff.supabase.co',
+      supabaseAnonKey: parsed?.supabaseAnonKey || 'sb_publishable_MPnqPf8U4_hbYTA015x-dg_wub4_niy',
+      isConnected: parsed?.isConnected ?? true,
+      isConfigured: parsed?.isConfigured ?? true,
+      autoSyncEnabled: parsed?.autoSyncEnabled ?? true,
+      lastSyncedAt: parsed?.lastSyncedAt,
+    };
   }
 
   public saveCloudConfig(config: CloudConfig): void {
